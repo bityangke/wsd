@@ -7,6 +7,8 @@
 # Written by Ross Girshick
 # --------------------------------------------------------
 
+#import pudb; pu.db #added for debug
+
 """Train a Fast R-CNN network on a region of interest database."""
 
 import _init_paths

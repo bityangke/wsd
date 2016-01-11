@@ -71,6 +71,7 @@ def vis_detections(im, class_name, dets, thresh=0.5):
     plt.tight_layout()
     plt.draw()
 
+import pudb; pu.db
 def demo(net, image_name, classes):
     """Detect object classes in an image using pre-computed object proposals."""
 
