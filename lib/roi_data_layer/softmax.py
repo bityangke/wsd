@@ -41,6 +41,9 @@ class MySoftMaxLayer(caffe.Layer):
     def reshape(self, bottom, top):
         top[0].reshape(1, bottom[0].channels,
                 bottom[0].height, bottom[0].width)
+        #print top[0].data.shape
+        #sfsfd
+        #self.diff = np.zeros_like(bottom[0].data, dtype=np.float32)
         # check input dimensions match
         #if bottom[0].data.shape[1] != bottom[1].data.shape[0]:
         #    raise Exception("There should be a 0-1 label per class, per image.")
@@ -54,13 +57,25 @@ class MySoftMaxLayer(caffe.Layer):
         #top[0].data[...] = np.sum(self.diff**2) / bottom[0].num / 2.
       
         #softmax in dimension 1 
-        max_cls = softmax(bottom[0].data,axis=0)
-        top[0].data[0,:,0,0] = max_cls
-        self.weights = weights(bottom[0].data,axis=0)
+        if 0: #mean
+            max_cls = np.mean(bottom[0].data,axis=0)
+            top[0].data[0,:,0,0] = max_cls
+            aux = np.ones(bottom[0].data.shape,dtype=bottom[0].data.dtype)
+            self.weights = aux/bottom[0].num#/np.sum(aux)#weights(bottom[0].data,axis=0)
+        else: #softmax
+            max_cls = softmax(bottom[0].data,axis=0)
+            top[0].data[0,:,0,0] = max_cls
+            self.weights = weights(bottom[0].data,axis=0)
+        #print top[0].data.shape
+        #fsf
         #cross entropy in dimension 0
         
 
     def backward(self, top, propagate_down, bottom):
-        if propagate_down:
-          bottom[0].diff[...] = top[0].diff.squeeze()*self.weights
+        if propagate_down[0]:
+            bottom[0].diff[...] = 2*top[0].diff.squeeze()*self.weights
+          #print self.weights
+        #print "Bottom",bottom[0].diff.sum(0).squeeze()
+        
+          
 

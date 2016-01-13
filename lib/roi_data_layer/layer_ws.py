@@ -67,7 +67,7 @@ class RoIDataLayer(caffe.Layer):
 
     def setup(self, bottom, top):
         """Setup the RoIDataLayer."""
-
+        self.done = False
         # parse the layer parameter string, which must be valid YAML
         layer_params = yaml.load(self.param_str_)
 
@@ -76,8 +76,8 @@ class RoIDataLayer(caffe.Layer):
         self._name_to_top_map = {
             'data': 0,
             'rois': 1,
-            'labels': 2,
-			'labels_im': 3}
+            #'labels': 2,
+			'labels_im': 2}
 
         # data blob: holds a batch of N images, each with 3 channels
         # The height and width (100 x 100) are dummy values
@@ -90,11 +90,11 @@ class RoIDataLayer(caffe.Layer):
 
         # labels blob: R categorical labels in [0, ..., K] for K foreground
         # classes plus background
-        top[2].reshape(1)
+        #top[2].reshape(1)
         
 		# image label blob: R categorical labels in [0, ..., K] for K foreground
 		# classes plus background per image
-        top[3].reshape(1)
+        top[2].reshape(1,self._num_classes)
         
         if cfg.TRAIN.BBOX_REG:
             self._name_to_top_map['bbox_targets'] = 3
@@ -110,7 +110,12 @@ class RoIDataLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""
-        blobs = self._get_next_minibatch()
+        if 1:#not self.done:
+          blobs = self._get_next_minibatch()
+          self.done=True
+          self.blobs2 = blobs
+        else:
+          blobs = self.blobs2
 
         for blob_name, blob in blobs.iteritems():
             top_ind = self._name_to_top_map[blob_name]

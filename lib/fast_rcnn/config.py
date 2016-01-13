@@ -105,6 +105,8 @@ __C.TEST.BBOX_REG = True
 #
 # MISC
 #
+# use GT bounding boxes together with selective search boxes?
+__C.INCLUDE_GT_BOXES = True
 
 # The mapping from image coordinates to feature map coordinates might cause
 # some boxes that are distinct in image space to become identical in feature

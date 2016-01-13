@@ -104,7 +104,7 @@ class pascal_voc(datasets.imdb):
 
         return gt_roidb
 
-    def selective_search_roidb(self):
+    def selective_search_roidb(self,INCLUDE_GT=True):
         """
         Return the database of selective search regions of interest.
         Ground-truth ROIs are also included.
@@ -120,10 +120,10 @@ class pascal_voc(datasets.imdb):
             print '{} ss roidb loaded from {}'.format(self.name, cache_file)
             return roidb
 
-        if int(self._year) == 2007 or self._image_set != 'test':
+        if (int(self._year) == 2007 or self._image_set != 'test') and INCLUDE_GT:
             gt_roidb = self.gt_roidb()
             ss_roidb = self._load_selective_search_roidb(gt_roidb)
-            roidb = datasets.imdb.merge_roidbs(gt_roidb, ss_roidb)
+            roidb = datasets.imdb.merge_roidbs(gt_roidb, ss_roidb)#mmm... includes gt also in test set for 2007
         else:
             roidb = self._load_selective_search_roidb(None)
         with open(cache_file, 'wb') as fid:

@@ -1,9 +1,9 @@
-EXP_DIR: "weakly_supervised"
+EXP_DIR: "weakly_supervised3"
 TRAIN:
   BBOX_REG: False
   SNAPSHOT_INFIX: no_bbox_reg
   IMS_PER_BATCH: 1 #for the moment works only with one image per batch...
-  FG_FRACTION: 0.5
-  FG_THRESH: 0.
+  FG_FRACTION: 0.25  #note still using supervision!!!!
+  FG_THRESH: 0.5
 TEST:
   BBOX_REG: False
