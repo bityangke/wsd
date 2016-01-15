@@ -56,7 +56,7 @@ class MySoftMaxLayer(caffe.Layer):
         #self.diff[...] = bottom[0].data - bottom[1].data
         #top[0].data[...] = np.sum(self.diff**2) / bottom[0].num / 2.
       
-        #softmax in dimension 1 
+        #softmax in dimension 0 
         if 0: #mean
             max_cls = np.mean(bottom[0].data,axis=0)
             top[0].data[0,:,0,0] = max_cls
@@ -66,6 +66,15 @@ class MySoftMaxLayer(caffe.Layer):
             max_cls = softmax(bottom[0].data,axis=0)
             top[0].data[0,:,0,0] = max_cls
             self.weights = weights(bottom[0].data,axis=0)
+        if 0:
+            import pylab
+            pylab.figure(1)
+            pylab.plot(max_cls)
+            pylab.figure(2)
+            pylab.imshow(self.weights)
+            pylab.show()
+            sdfsd
+            raw_input()
         #print top[0].data.shape
         #fsf
         #cross entropy in dimension 0
@@ -73,8 +82,10 @@ class MySoftMaxLayer(caffe.Layer):
 
     def backward(self, top, propagate_down, bottom):
         if propagate_down[0]:
-            bottom[0].diff[...] = 2*top[0].diff.squeeze()*self.weights
-          #print self.weights
+            bottom[0].diff[...] = top[0].diff.squeeze()*self.weights
+        #print top[0].diff.squeeze()
+        #raw_input()
+        #print self.weights
         #print "Bottom",bottom[0].diff.sum(0).squeeze()
         
           

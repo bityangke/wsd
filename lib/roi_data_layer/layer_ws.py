@@ -94,7 +94,10 @@ class RoIDataLayer(caffe.Layer):
         
 		# image label blob: R categorical labels in [0, ..., K] for K foreground
 		# classes plus background per image
-        top[2].reshape(1,self._num_classes)
+        if cfg.TRAIN.MULTICLASS:
+			top[2].reshape(1,self._num_classes)
+        else:
+			top[2].reshape(1)
         
         if cfg.TRAIN.BBOX_REG:
             self._name_to_top_map['bbox_targets'] = 3

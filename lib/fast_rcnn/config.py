@@ -78,6 +78,11 @@ __C.TRAIN.SNAPSHOT_INFIX = ''
 # So far I haven't found this useful; likely more engineering work is required
 __C.TRAIN.USE_PREFETCH = False
 
+# Use single class or multiclass classification 
+# False --> GT = class
+# True --> Distribution over classes
+__C.TRAIN.MULTICLASS = True
+
 #
 # Testing options
 #

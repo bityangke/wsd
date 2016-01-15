@@ -309,12 +309,12 @@ layer {
     layer: 'MySoftMaxLayer'
   }
 }
-layer {
-  name: "max_cls"
-  type: "Softmax"
-  bottom: "im_score"
-  top: "cls_pr"
-}
+#layer {
+#  name: "max_cls"
+#  type: "Softmax"
+#  bottom: "im_score"
+#  top: "cls_pr"
+#}
 #layer {
 #  name: "max_cls"
 #  type: "Softmax"
@@ -322,23 +322,24 @@ layer {
 #  top: "cls_pr1"
 #}
 #new layer to fuse detections with softmax
+layer {
+  name: "loss_cls"
+  type: "SoftmaxWithLoss" 
+  bottom: "im_score"
+  bottom: "labels_im" #change labels and set batch = 1
+  top: "loss_cls"
+# top: "prob_cls"
+  loss_weight: 1
+}
+
 #layer {
 #  name: "loss_cls"
-#  type: "SoftmaxWithLoss" #change to crossentropy
-#  bottom: "cls_pr"
+#  type: "EuclideanLoss"#SigmoidCrossEntropyLoss" #change to crossentropy
+#  bottom: "cls_pr"#"im_score"
 #  bottom: "labels_im" #change labels and set batch = 1
 #  top: "loss_cls"
 #  loss_weight: 1
 #}
-
-layer {
-  name: "loss_cls"
-  type: "EuclideanLoss"#SigmoidCrossEntropyLoss" #change to crossentropy
-  bottom: "cls_pr"#"im_score"
-  bottom: "labels_im" #change labels and set batch = 1
-  top: "loss_cls"
-  loss_weight: 1
-}
 #layer {
 #  name: 'loss_cls'
 #  type: 'Python'

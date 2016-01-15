@@ -32,7 +32,10 @@ def get_minibatch(roidb, num_classes):
     rois_blob = np.zeros((0, 5), dtype=np.float32)
     labels_blob = np.zeros((0), dtype=np.float32)
     #labels_im_blob = np.zeros((0), dtype=np.float32)
-    labels_im_blob = np.zeros((0,num_classes,1,1), dtype=np.float32)
+    if cfg.TRAIN.MULTICLASS:
+	labels_im_blob = np.zeros((0,num_classes,1,1), dtype=np.float32)
+    else:
+	labels_im_blob = np.zeros((0), dtype=np.float32)
     bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
     bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
     # all_overlaps = []
@@ -49,7 +52,10 @@ def get_minibatch(roidb, num_classes):
 
         # Add to labels, bbox targets, and bbox loss blobs
         labels_blob = np.hstack((labels_blob, labels))
-        labels_im_blob = np.vstack((labels_im_blob, labels_id))
+        if cfg.TRAIN.MULTICLASS:
+	    labels_im_blob = np.vstack((labels_im_blob, labels_id))
+	else:
+	    labels_im_blob = np.hstack((labels_im_blob, labels_id))
         if cfg.TRAIN.BBOX_REG:
             bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
             bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss))
@@ -84,7 +90,9 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     #labels_id[0,0] = 0.0 #remove background
     labels_id /= np.sum(labels_id)
     assert(not(np.all(labels_id==0)))
-    #print "LABELS",labels_id.squeeze()
+    if not cfg.TRAIN.MULTICLASS:
+	labels_id = np.random.choice(present)
+    #print "LABELS",labels_id#.squeeze()
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
