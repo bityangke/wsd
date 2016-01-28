@@ -90,6 +90,17 @@ class imdb(object):
         all_boxes[class][image] = [] or np.array of shape #dets x 5
         """
         raise NotImplementedError
+        
+    def evaluate_classification(self, all_boxes, output_dir=None):
+        """
+        all_boxes is a list of length number-of-classes.
+        Each list element is a list of length number-of-images.
+        Each of those list elements is either an empty list []
+        or a classification score
+
+        all_boxes[class][image] = [] or classification score
+        """
+        raise NotImplementedError
 
     def append_flipped_images(self):
         num_images = self.num_images

@@ -255,7 +255,46 @@ class pascal_voc(datasets.imdb):
                                        dets[k, 2] + 1, dets[k, 3] + 1))
         return comp_id
 
+    def _write_cls_results_file(self, all_boxes):
+        use_salt = self.config['use_salt']
+        comp_id = 'comp4'
+        if use_salt:
+            comp_id += '-{}'.format(os.getpid())
+
+        # VOCdevkit/results/VOC2007/Main/comp4-44503_det_test_aeroplane.txt
+        path = os.path.join(self._devkit_path, 'results', 'VOC' + self._year,
+                            'Main', comp_id + '_')
+        for cls_ind, cls in enumerate(self.classes):
+            if cls == '__background__':
+                continue
+            print 'Writing {} VOC results file'.format(cls)
+            filename = path + 'det_' + self._image_set + '_' + cls + '.txt'
+            with open(filename, 'wt') as f:
+                for im_ind, index in enumerate(self.image_index):
+                    dets = all_boxes[cls_ind][im_ind]
+                    if dets == []:
+                        continue
+                    # the VOCdevkit expects 1-based indices
+                    #for k in xrange(dets.shape[0]):
+                    f.write('{:s} {:.1f}\n'.
+                                format(index, dets))
+        return comp_id
+
     def _do_matlab_eval(self, comp_id, output_dir='output'):
+        rm_results = self.config['cleanup']
+
+        path = os.path.join(os.path.dirname(__file__),
+                            'VOCdevkit-matlab-wrapper')
+        cmd = 'cd {} && '.format(path)
+        cmd += '{:s} -nodisplay -nodesktop '.format(datasets.MATLAB)
+        cmd += '-r "dbstop if error; '
+        cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d}); quit;"' \
+               .format(self._devkit_path, comp_id,
+                       self._image_set, output_dir, int(rm_results))
+        print('Running:\n{}'.format(cmd))
+        status = subprocess.call(cmd, shell=True)
+
+    def _do_matlab_eval_cls(self, comp_id, output_dir='output'):
         rm_results = self.config['cleanup']
 
         path = os.path.join(os.path.dirname(__file__),
@@ -272,6 +311,10 @@ class pascal_voc(datasets.imdb):
     def evaluate_detections(self, all_boxes, output_dir):
         comp_id = self._write_voc_results_file(all_boxes)
         self._do_matlab_eval(comp_id, output_dir)
+        
+    def evaluate_classification(self, all_boxes, output_dir):
+        comp_id = self._write_cls_results_file(all_boxes)
+        self._do_matlab_eval_cls(comp_id, output_dir)
 
     def competition_mode(self, on):
         if on:

@@ -328,9 +328,18 @@ layer {
   bottom: "im_score"
   bottom: "labels_im" #change labels and set batch = 1
   top: "loss_cls"
-# top: "prob_cls"
   loss_weight: 1
 }
+
+#layer {
+#  name: "loss_cls"
+#  type: "HingeLoss" 
+#  bottom: "im_score"
+#  bottom: "labels_im" #change labels and set batch = 1
+#  top: "loss_cls"
+# top: "prob_cls"
+#  loss_weight: 1
+#}
 
 #layer {
 #  name: "loss_cls"

@@ -85,13 +85,22 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     rois = roidb['boxes']
     #labels_id = labels[overlaps.argmax()]
     labels_id = np.zeros((1,num_classes,1,1), dtype=np.float32)
-    present = [x for x in np.arange(num_classes) if np.any(labels==x)]
-    labels_id[0,present] = 1.0#labels[overlaps.argmax()]
+    if not cfg.TRAIN.USE_BACKGROUND:
+        present = [x for x in np.arange(1,num_classes+1) if np.any(labels==x)]
+        #print present
+        present=np.array(present)#-1
+        #print present
+        #raw_input()
+        labels_id[0,present] = 1.0#labels[overlaps.argmax()]        
+    else:
+        present = [x for x in np.arange(num_classes) if np.any(labels==x)]
+        labels_id[0,present] = 1.0#labels[overlaps.argmax()]
     #labels_id[0,0] = 0.0 #remove background
     labels_id /= np.sum(labels_id)
     assert(not(np.all(labels_id==0)))
     if not cfg.TRAIN.MULTICLASS:
-	labels_id = np.random.choice(present)
+        labels_id = np.random.choice(present)
+        #print labels_id.squeeze()
     #print "LABELS",labels_id#.squeeze()
 
     # Select foreground RoIs as those with >= FG_THRESH overlap

@@ -83,6 +83,11 @@ __C.TRAIN.USE_PREFETCH = False
 # True --> Distribution over classes
 __C.TRAIN.MULTICLASS = True
 
+# Use single class or multiclass classification 
+# False --> GT = class
+# True --> Distribution over classes
+__C.TRAIN.USE_BACKGROUND = True
+
 #
 # Testing options
 #
@@ -106,6 +111,9 @@ __C.TEST.SVM = False
 
 # Test using bounding-box regressors
 __C.TEST.BBOX_REG = True
+
+# Use horizontally-flipped images during test?
+__C.TEST.USE_FLIPPED = True
 
 #
 # MISC

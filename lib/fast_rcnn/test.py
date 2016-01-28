@@ -224,7 +224,8 @@ def vis_detections(im, class_name, dets, thresh=0.3):
                               edgecolor='g', linewidth=3)
                 )
             plt.title('{}  {:.3f}'.format(class_name, score))
-            plt.show()
+            #plt.show()
+    plt.show()
 
 def apply_nms(all_boxes, thresh):
     """Apply non-maximum suppression to all predicted boxes output by the
@@ -304,7 +305,12 @@ def test_net(net, imdb):
 
             if 0:
                 keep = nms(all_boxes[j][i], 0.3)
+                #import pylab
+                #pylab.figure(1)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
+                #pylab.draw()
+                #pylab.show()
+                #raw_input()
         _t['misc'].toc()
 
         print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \

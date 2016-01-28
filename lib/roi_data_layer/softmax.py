@@ -57,15 +57,9 @@ class MySoftMaxLayer(caffe.Layer):
         #top[0].data[...] = np.sum(self.diff**2) / bottom[0].num / 2.
       
         #softmax in dimension 0 
-        if 0: #mean
-            max_cls = np.mean(bottom[0].data,axis=0)
-            top[0].data[0,:,0,0] = max_cls
-            aux = np.ones(bottom[0].data.shape,dtype=bottom[0].data.dtype)
-            self.weights = aux/bottom[0].num#/np.sum(aux)#weights(bottom[0].data,axis=0)
-        else: #softmax
-            max_cls = softmax(bottom[0].data,axis=0)
-            top[0].data[0,:,0,0] = max_cls
-            self.weights = weights(bottom[0].data,axis=0)
+        max_cls = softmax(bottom[0].data,axis=0)
+        top[0].data[0,:,0,0] = max_cls
+        self.weights = weights(bottom[0].data,axis=0)
         if 0:
             import pylab
             pylab.figure(1)
