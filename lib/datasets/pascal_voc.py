@@ -268,7 +268,7 @@ class pascal_voc(datasets.imdb):
             if cls == '__background__':
                 continue
             print 'Writing {} VOC results file'.format(cls)
-            filename = path + 'det_' + self._image_set + '_' + cls + '.txt'
+            filename = path + 'cls_' + self._image_set + '_' + cls + '.txt'
             with open(filename, 'wt') as f:
                 for im_ind, index in enumerate(self.image_index):
                     dets = all_boxes[cls_ind][im_ind]
@@ -276,7 +276,7 @@ class pascal_voc(datasets.imdb):
                         continue
                     # the VOCdevkit expects 1-based indices
                     #for k in xrange(dets.shape[0]):
-                    f.write('{:s} {:.1f}\n'.
+                    f.write('{:s} {:.3f}\n'.
                                 format(index, dets))
         return comp_id
 
@@ -302,7 +302,7 @@ class pascal_voc(datasets.imdb):
         cmd = 'cd {} && '.format(path)
         cmd += '{:s} -nodisplay -nodesktop '.format(datasets.MATLAB)
         cmd += '-r "dbstop if error; '
-        cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d}); quit;"' \
+        cmd += 'voc_eval_cls(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d}); quit;"' \
                .format(self._devkit_path, comp_id,
                        self._image_set, output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))

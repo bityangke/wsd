@@ -88,6 +88,12 @@ __C.TRAIN.MULTICLASS = True
 # True --> Distribution over classes
 __C.TRAIN.USE_BACKGROUND = True
 
+# Factor of my softmax:
+# softmax = exp(x_i)^beta/sum_s(exp(x_s)^beta)
+# beta > 1 towards max, beta < 1 towards average
+# beta == -1 use the softmax from the prototxt
+__C.TRAIN.BETA = 1.0
+
 #
 # Testing options
 #

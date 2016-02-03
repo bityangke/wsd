@@ -36,6 +36,9 @@ def parse_args():
     parser.add_argument('--wait', dest='wait',
                         help='wait until net file exists',
                         default=True, type=bool)
+    parser.add_argument('--recompute', dest='recompute',
+                        help='recompute the score even if its already save in detections.pkl file',
+                        default=True, type=bool)
     parser.add_argument('--imdb', dest='imdb_name',
                         help='dataset to test',
                         default='voc_2007_test', type=str)
