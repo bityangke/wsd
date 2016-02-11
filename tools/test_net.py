@@ -37,8 +37,11 @@ def parse_args():
                         help='wait until net file exists',
                         default=True, type=bool)
     parser.add_argument('--recompute', dest='recompute',
-                        help='recompute the score even if its already save in detections.pkl file',
+                        help='recompute the score even if its already saved in detections.pkl file',
                         default=True, type=bool)
+    parser.add_argument('--feat', dest='feat_file',
+                        help='Name of the file to save the features',
+                        default=None, type=str)
     parser.add_argument('--imdb', dest='imdb_name',
                         help='dataset to test',
                         default='voc_2007_test', type=str)
@@ -81,4 +84,4 @@ if __name__ == '__main__':
     imdb = get_imdb(args.imdb_name)
     imdb.competition_mode(args.comp_mode)
 
-    test_net(net, imdb)
+    test_net(net, imdb, args)

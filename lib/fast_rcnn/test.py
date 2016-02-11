@@ -151,7 +151,7 @@ def _clip_boxes(boxes, im_shape):
     boxes[:, 3::4] = np.minimum(boxes[:, 3::4], im_shape[0] - 1)
     return boxes
 
-def im_detect(net, im, boxes):
+def im_detect(net, im, boxes, feat_file=None):
     """Detect object classes in an image given object proposals.
 
     Arguments:
@@ -177,12 +177,23 @@ def im_detect(net, im, boxes):
                                         return_inverse=True)
         blobs['rois'] = blobs['rois'][index, :]
         boxes = boxes[index, :]
-
+        
+    if feat_file!=None:
+        feat=[]
+        feat_layer=['fc7']
+    else:
+        feat_layer=[]
+        
     # reshape network inputs
     net.blobs['data'].reshape(*(blobs['data'].shape))
     net.blobs['rois'].reshape(*(blobs['rois'].shape))
     blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False),
-                            rois=blobs['rois'].astype(np.float32, copy=False))
+                            rois=blobs['rois'].astype(np.float32, copy=False),
+                            blobs=feat_layer)
+                            
+    if feat_file!=None:
+        feat = blobs_out[feat_layer[0]].copy()
+    
     if cfg.TEST.SVM:
         # use the raw scores before softmax under the assumption they
         # were trained as linear SVMs
@@ -204,8 +215,10 @@ def im_detect(net, im, boxes):
         # Map scores and predictions back to the original set of boxes
         scores = scores[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
-
-    return scores, pred_boxes
+    if feat_file!=None:
+        return scores, pred_boxes, feat
+    else:
+	return scores, pred_boxes
 
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
@@ -246,7 +259,7 @@ def apply_nms(all_boxes, thresh):
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
     return nms_boxes
 
-def test_net(net, imdb):
+def test_net(net, imdb ,args):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
     # heuristic: keep an average of 40 detections per class per images prior
@@ -282,11 +295,13 @@ def test_net(net, imdb):
         _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
         roidb = imdb.roidb
+        lfeat = []
         for i in xrange(num_images):
             im = cv2.imread(imdb.image_path_at(i))
             _t['im_detect'].tic()
-            scores, boxes = im_detect(net, im, roidb[i]['boxes'])
+            scores, boxes = im_detect(net, im, roidb[i]['boxes'],args.feat_file)
             _t['im_detect'].toc()
+            #lfeat.append(feat)
 
             _t['misc'].tic()
             for j in xrange(1, imdb.num_classes):
@@ -329,6 +344,11 @@ def test_net(net, imdb):
             for i in xrange(num_images):
                 inds = np.where(all_boxes[j][i][:, -1] > thresh[j])[0]
                 all_boxes[j][i] = all_boxes[j][i][inds, :]
+
+        if args.feat_file!=None:
+            print 'Saving the features in ',os.path.join(output_dir,args.feat_file)
+            with open(os.path.join(output_dir,args.feat_file), 'wb') as f:
+                cPickle.dump(lfeat, f, cPickle.HIGHEST_PROTOCOL)
 
         det_file = os.path.join(output_dir, 'detections.pkl')
         with open(det_file, 'wb') as f:

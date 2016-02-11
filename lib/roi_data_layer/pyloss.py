@@ -208,6 +208,54 @@ class HingeLoss(caffe.Layer):
                 sign = -1
             bottom[i].diff[...] = sign * self.diff #/ bottom[i].count
 
+class HingeLossNorm(caffe.Layer):
+    """
+    Compute multiclass Hinge Loss 
+    """
+
+    def setup(self, bottom, top):
+        # check input pair
+        if len(bottom) != 2:
+            raise Exception("Need two inputs to compute distance.")
+
+    def reshape(self, bottom, top):
+        # check input dimensions match
+        if bottom[0].count != bottom[1].count:
+            raise Exception("Inputs must have the same dimension.")
+        # difference is shape of inputs
+        self.diff = np.zeros_like(bottom[0].data, dtype=np.float32)
+        # loss output is scalar
+        top[0].reshape(1)
+
+    def forward(self, bottom, top):
+        #p = weights(bottom[0].data)
+        bottom[1].data[bottom[1].data[...]>0]=1 #restore to a binary measure
+        y = bottom[1].data*2-1
+        act = 1-bottom[0].data*y
+        self.diff=np.zeros(y.shape,dtype=np.float32)
+        self.diff[act>0] = - y[act>0] 
+        top[0].data[...] = np.sum(np.maximum(0,act))/bottom[0].channels# / bottom[0].num / 2.
+        if 0:
+            print "out",bottom[0].data.squeeze() 
+            print "gt",bottom[1].data.squeeze()
+            #print "p",p.squeeze()
+            print "diff",self.diff.squeeze()
+            print "Loss",top[0].data.squeeze()
+            raw_input()
+
+    def backward(self, top, propagate_down, bottom):
+        #print "propagate!!!",propagate_down[0],propagate_down[1]
+        #print "size",bottom[0].num,bottom[0].channels
+        print "Error",self.diff/ bottom[i].channels
+        for i in range(2):
+            if not propagate_down[i]:
+                continue
+            if i == 0:
+                sign = 1
+            else:
+                sign = -1
+            bottom[i].diff[...] = sign * self.diff/ bottom[i].channels
+
 class SoftMaxLogLoss(caffe.Layer):
     """
     Compute the Log Loss 

@@ -222,4 +222,5 @@ class BetaSoftMaxLayer(caffe.Layer):
             raw_input()     
 
     def backward(self, top, propagate_down, bottom):
-        bottom[0].diff[...] = np.log(self.beta)*top[0].data * (top[0].diff-(top[0].diff*top[0].data).sum(0,keepdims=True))/bottom[0].num
+        #print "Size",bottom[0].num
+        bottom[0].diff[...] = np.log(self.beta)*top[0].data * (top[0].diff-(top[0].diff*top[0].data).sum(0,keepdims=True))#/bottom[0].num
