@@ -73,11 +73,16 @@ class RoIDataLayer(caffe.Layer):
 
         self._num_classes = layer_params['num_classes']
 
-        self._name_to_top_map = {
-            'data': 0,
-            'rois': 1,
-            #'labels': 2,
-			'labels_im': 2}
+        if cfg.TRAIN.WEAKLY_SUP:
+            self._name_to_top_map = {
+                'data': 0,
+                'rois': 1,
+                'labels_im': 2,}
+        else:
+            self._name_to_top_map = {
+                'data': 0,
+                'rois': 1,
+                'labels': 2}
 
         # data blob: holds a batch of N images, each with 3 channels
         # The height and width (100 x 100) are dummy values

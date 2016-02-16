@@ -190,7 +190,6 @@ class ExpSoftMaxLayer(caffe.Layer):
         #print self.weights
         #print "Bottom",bottom[0].diff.sum(0).squeeze()
 
-
 class BetaSoftMaxLayer(caffe.Layer):
 
     def setup(self, bottom, top):

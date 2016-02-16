@@ -154,8 +154,11 @@ class PlotLoss(caffe.Layer):
                 pylab.show()
                 raw_input()
             self.loss.append(0)
-
-        self.loss[-1]+=bottom[0].data[0]
+        
+        if len(bottom[0].data.shape)==0:
+            self.loss[-1]+=bottom[0].data
+        else:
+            self.loss[-1]+=bottom[0].data[0]
         self.it+=1
            
         
@@ -246,7 +249,7 @@ class HingeLossNorm(caffe.Layer):
     def backward(self, top, propagate_down, bottom):
         #print "propagate!!!",propagate_down[0],propagate_down[1]
         #print "size",bottom[0].num,bottom[0].channels
-        print "Error",self.diff/ bottom[i].channels
+        #print "Error",self.diff/ bottom[i].channels
         for i in range(2):
             if not propagate_down[i]:
                 continue

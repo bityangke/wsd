@@ -33,9 +33,9 @@ def get_minibatch(roidb, num_classes):
     labels_blob = np.zeros((0), dtype=np.float32)
     #labels_im_blob = np.zeros((0), dtype=np.float32)
     if cfg.TRAIN.MULTICLASS:
-	labels_im_blob = np.zeros((0,num_classes,1,1), dtype=np.float32)
+        labels_im_blob = np.zeros((0,num_classes,1,1), dtype=np.float32)
     else:
-	labels_im_blob = np.zeros((0), dtype=np.float32)
+        labels_im_blob = np.zeros((0), dtype=np.float32)
     bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
     bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
     # all_overlaps = []
@@ -53,9 +53,9 @@ def get_minibatch(roidb, num_classes):
         # Add to labels, bbox targets, and bbox loss blobs
         labels_blob = np.hstack((labels_blob, labels))
         if cfg.TRAIN.MULTICLASS:
-	    labels_im_blob = np.vstack((labels_im_blob, labels_id))
-	else:
-	    labels_im_blob = np.hstack((labels_im_blob, labels_id))
+            labels_im_blob = np.vstack((labels_im_blob, labels_id))
+        else:
+            labels_im_blob = np.hstack((labels_im_blob, labels_id))
         if cfg.TRAIN.BBOX_REG:
             bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
             bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss))
@@ -64,10 +64,17 @@ def get_minibatch(roidb, num_classes):
     # For debug visualizations
     # _vis_minibatch(im_blob, rois_blob, labels_blob, all_overlaps)
 
-    blobs = {'data': im_blob,
+    if cfg.TRAIN.WEAKLY_SUP:
+        blobs = {'data': im_blob,
+                 'rois': rois_blob,
+                 #'labels': labels_blob,
+                 'labels_im': labels_im_blob}
+    else:
+        blobs = {'data': im_blob,
              'rois': rois_blob,
-             #'labels': labels_blob,
-			 'labels_im': labels_im_blob}
+             'labels': labels_blob,
+			 #'labels_im': labels_im_blob
+             }
     
     if cfg.TRAIN.BBOX_REG:
         blobs['bbox_targets'] = bbox_targets_blob

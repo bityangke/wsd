@@ -94,6 +94,13 @@ __C.TRAIN.USE_BACKGROUND = True
 # beta == -1 use the softmax from the prototxt
 __C.TRAIN.BETA = 1.0
 
+# use weakly supervised annotations
+__C.TRAIN.WEAKLY_SUP = False
+
+# check gradients in my python layers during training
+# it can slow down the training!!!
+__C.TRAIN.CHECK_GRAD = False
+
 #
 # Testing options
 #
