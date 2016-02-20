@@ -220,6 +220,55 @@ def im_detect(net, im, boxes, feat_file=None):
     else:
 	return scores, pred_boxes
 
+from utils.cython_bbox import bbox_overlaps
+
+def evalCorLoc2(imdb,nms_dets,overlap=0.5):
+    num_classes = len(nms_dets)
+    num_images = len(nms_dets[0])
+    gt = imdb.gt_roidb()
+    pos = np.zeros(imdb.num_classes)
+    tot = np.zeros(imdb.num_classes)
+    for cls_ind in xrange(num_classes):
+        for im_ind in xrange(num_images):
+            dets = nms_dets[cls_ind][im_ind]
+            if dets == []:
+                continue
+            if np.all(gt[im_ind]['gt_classes']!=cls_ind):
+                continue
+            sel = gt[im_ind]['gt_classes'] == cls_ind
+            gtdet = (gt[im_ind]['boxes'][sel]).astype(np.float, copy=False)
+            dets = dets.astype(np.float, copy=False)
+            ovr = bbox_overlaps(gtdet,dets)
+            tot[cls_ind] += gtdet.shape[0]
+            pos[cls_ind] += np.sum(ovr.max(1)>overlap)
+    corloc = pos[1:]/tot[1:]
+    return corloc
+
+def evalCorLoc(imdb,nms_dets,overlap=0.5):
+    num_classes = len(nms_dets)
+    num_images = len(nms_dets[0])
+    gt = imdb.gt_roidb()
+    pos = np.zeros(imdb.num_classes)
+    tot = np.zeros(imdb.num_classes)
+    for cls_ind in xrange(1,num_classes):
+        for im_ind in xrange(num_images):
+            dets = nms_dets[cls_ind][im_ind]
+            if dets == []:
+                print "Error, no detections!"
+                dfsd
+                continue
+            if np.all(gt[im_ind]['gt_classes']!=cls_ind):
+                continue
+            sel = gt[im_ind]['gt_classes'] == cls_ind
+            gtdet = (gt[im_ind]['boxes'][sel]).astype(np.float, copy=False)
+            dets = dets.astype(np.float, copy=False)
+            ovr = bbox_overlaps(gtdet,dets[:1])
+            tot[cls_ind] += 1#gtdet.shape[0]
+            pos[cls_ind] += ovr.max()>=overlap #> or >=
+    corloc = pos[1:]/tot[1:]
+    return corloc
+
+
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt
@@ -264,7 +313,7 @@ def test_net(net, imdb ,args):
     num_images = len(imdb.image_index)
     # heuristic: keep an average of 40 detections per class per images prior
     # to NMS
-    max_per_set = 40 * num_images
+    max_per_set = 40 * num_images #changed from 40
     # heuristic: keep at most 100 detection per class per image prior to NMS
     max_per_image = 100
     # detection thresold for each class (this is adaptively set based on the
@@ -283,10 +332,12 @@ def test_net(net, imdb ,args):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    #print "--------",args.reusedet
+    itr= args.caffemodel.split('_')[-1].split('.')[0]
     try:
-        if recompute:
+        if not(args.reusedet):
             generate_error
-        det_file = os.path.join(output_dir, 'detections.pkl')
+        det_file = os.path.join(output_dir, 'detections%s.pkl'%itr)
         with open(det_file, 'rb') as f:
             all_boxes = cPickle.load(f)
 
@@ -320,12 +371,13 @@ def test_net(net, imdb ,args):
                 if len(top_scores[j]) > max_per_set:
                     while len(top_scores[j]) > max_per_set:
                         heapq.heappop(top_scores[j])
-                    thresh[j] = top_scores[j][0]
+                        if args.imdb_name!='voc_2007_trainval':#test
+                            thresh[j] = top_scores[j][0]
 
                 all_boxes[j][i] = \
                         np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
                         .astype(np.float32, copy=False)
-
+                        
                 if 0:
                     keep = nms(all_boxes[j][i], 0.3)
                     #import pylab
@@ -344,18 +396,35 @@ def test_net(net, imdb ,args):
             for i in xrange(num_images):
                 inds = np.where(all_boxes[j][i][:, -1] > thresh[j])[0]
                 all_boxes[j][i] = all_boxes[j][i][inds, :]
-
+                
         if args.feat_file!=None:
             print 'Saving the features in ',os.path.join(output_dir,args.feat_file)
             with open(os.path.join(output_dir,args.feat_file), 'wb') as f:
                 cPickle.dump(lfeat, f, cPickle.HIGHEST_PROTOCOL)
 
-        det_file = os.path.join(output_dir, 'detections.pkl')
+        det_file = os.path.join(output_dir, 'detections%s.pkl'%itr)
         with open(det_file, 'wb') as f:
             cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
 
     print 'Applying NMS to all detections'
     nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
 
-    print 'Evaluating detections'
-    imdb.evaluate_detections(nms_dets, output_dir)
+    if args.imdb_name=='voc_2007_trainval':
+        print 'Evaluate CorLoc'
+        corloc=evalCorLoc(imdb,nms_dets)    
+        print "CorLoc",corloc
+        print "Mean",corloc.mean()
+        corlocover=[]
+        for l in range(11):
+            corlocover.append(evalCorLoc(imdb,nms_dets,overlap=float(l)/10.0).mean())
+            print "Overlap",float(l)/10.0,
+            print "CorLoc",corlocover[-1]
+        if 1:
+            import pylab
+            pylab.figure()
+            pylab.plot(corlocover)
+            pylab.plot([0,10],[corlocover[0],corlocover[-1]])
+            pylab.show()
+    else:
+        print 'Evaluating detections'
+        imdb.evaluate_detections(nms_dets, output_dir, args.overlap)

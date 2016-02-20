@@ -71,6 +71,44 @@ class MySumLayer(caffe.Layer):
                 dsfsd
                 print "Error in the gradient!"
                 
+class MySum2Layer(caffe.Layer):
+    #it receives also the rois to know which regions to sum
+
+    def setup(self, bottom, top):
+        # check input pair
+        if len(bottom) != 2:
+            raise Exception("Only two input needed.")
+        self.num_im = cfg.TRAIN.IMS_PER_BATCH#bottom[1].data[:,0].max()
+        #top[0].reshape(1, bottom[0].channels,bottom[0].height, bottom[0].width)
+        
+    def reshape(self, bottom, top):
+        bottom[0].reshape(bottom[0].num, bottom[0].channels,bottom[0].height, bottom[0].width)
+        top[0].reshape(cfg.TRAIN.IMS_PER_BATCH, bottom[0].channels,bottom[0].height, bottom[0].width)
+        top[0].diff.reshape(cfg.TRAIN.IMS_PER_BATCH, bottom[0].channels,bottom[0].height, bottom[0].width)
+        #print top[0].data.shape
+        #print top[0].diff.shape
+        #raw_input()
+        #bottom[1][0] tells from which image every layer comes from
+
+    def forward(self, bottom, top):
+        for cl in xrange(self.num_im):
+            sel = bottom[1].data[:,0]==cl
+            top[0].data[cl]=f(bottom[0].data[sel])
+
+
+    def backward(self, top, propagate_down, bottom):
+        for cl in xrange(self.num_im):
+            sel = bottom[1].data[:,0]==cl
+            bottom[0].diff[sel] = top[0].diff[cl]*g(bottom[0].data[sel])
+            
+            if cfg.TRAIN.CHECK_GRAD:
+                x = bottom[0].data[sel]
+                err=check_grad(f,g,x,1e-4)
+                print "Testing Gradient Sum",err
+                if err>1e-3:
+                    dsfsd
+                    print "Error in the gradient!"
+
 
 
 def betaweights2(x,beta,axis=-1):
@@ -141,4 +179,41 @@ class BetaSoftMaxLayer(caffe.Layer):
                 print "Error in the softmax gradient!"
                 sfdfs
 
+class BetaSoftMax2Layer(caffe.Layer):
+
+    def setup(self, bottom, top):
+        if cfg.TRAIN.BETA==-1:
+            layer_params = yaml.load(self.param_str_)
+            self.beta = layer_params['beta']
+        else:
+            self.beta = cfg.TRAIN.BETA
+        print "Beta",self.beta 
+        self.it=0
+        if len(bottom) != 2:
+            raise Exception("Only two input needed.")
+        self.num_im = cfg.TRAIN.IMS_PER_BATCH#bottom[1].data[:,0].max()
+
+    def reshape(self, bottom, top):
+        top[0].reshape(bottom[0].num, bottom[0].channels)
+
+    def forward(self, bottom, top):
+        self.it+=1
+        #p = betaweights2(bottom[0].data,self.beta,axis=0)
+        for cl in xrange(self.num_im):
+            sel = bottom[1].data[:,0]==cl
+            data_im = bottom[0].data[sel]
+            top[0].data[sel] = f_soft(data_im)#p
+
+    def backward(self, top, propagate_down, bottom):
+        for cl in xrange(self.num_im):
+            sel = bottom[1].data[:,0]==cl
+            bottom[0].diff[sel] = top[0].diff[sel]*g_soft(bottom[0].data[sel])
+        #print 'Error', np.sum((bottom[0].diff-pr2)**2)
+            if cfg.TRAIN.CHECK_GRAD:
+                x = bottom[0].data[sel]
+                err=check_grad(f_soft,g_soft,x,1e-4)
+                print "Testing Gradient Softmax",err
+                if err>1e-3:
+                    print "Error in the softmax gradient!"
+                    sfdfs
 

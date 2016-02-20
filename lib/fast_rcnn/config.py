@@ -101,6 +101,9 @@ __C.TRAIN.WEAKLY_SUP = False
 # it can slow down the training!!!
 __C.TRAIN.CHECK_GRAD = False
 
+# enforce an additional loss
+__C.TRAIN.PAIRWISE_SIM = False
+
 #
 # Testing options
 #

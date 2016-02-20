@@ -123,7 +123,7 @@ class pascal_voc(datasets.imdb):
         if (int(self._year) == 2007 or self._image_set != 'test') and INCLUDE_GT:
             gt_roidb = self.gt_roidb()
             ss_roidb = self._load_selective_search_roidb(gt_roidb)
-            roidb = datasets.imdb.merge_roidbs(gt_roidb, ss_roidb)#mmm... includes gt also in test set for 2007
+            roidb = datasets.imdb.merge_roidbs(gt_roidb, ss_roidb)
         else:
             roidb = self._load_selective_search_roidb(None)
         with open(cache_file, 'wb') as fid:
@@ -308,7 +308,7 @@ class pascal_voc(datasets.imdb):
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
 
-    def evaluate_detections(self, all_boxes, output_dir):
+    def evaluate_detections(self, all_boxes, output_dir, overlap):
         comp_id = self._write_voc_results_file(all_boxes)
         self._do_matlab_eval(comp_id, output_dir)
         

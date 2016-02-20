@@ -34,6 +34,20 @@ class RoIDataLayer(caffe.Layer):
         self._cur += cfg.TRAIN.IMS_PER_BATCH
         return db_inds
 
+    def _get_next_minibatch_inds_pair(self):
+        """Return the roidb indices for the next minibatch."""
+        if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
+            self._shuffle_roidb_inds()
+
+        db_inds = self._perm[self._cur:self._cur + 1]
+        labels = self._roidb[i]['max_classes']
+        #select one of the classes in the image
+        cls=np.random.choice([x for x in np.arange(num_classes) if np.any(labels==x)])
+        #find another image of the same class
+        
+        self._cur += 1#cfg.TRAIN.IMS_PER_BATCH
+        return db_inds
+
     def _get_next_minibatch(self):
         """Return the blobs to be used for the next minibatch.
 
@@ -43,7 +57,10 @@ class RoIDataLayer(caffe.Layer):
         if cfg.TRAIN.USE_PREFETCH:
             return self._blob_queue.get()
         else:
-            db_inds = self._get_next_minibatch_inds()
+            if cfg.TRAIN.PAIRWISE_SIM:
+              db_inds = self._get_next_minibatch_inds_pair()
+            else:
+              db_inds = self._get_next_minibatch_inds()
             minibatch_db = [self._roidb[i] for i in db_inds]
             return get_minibatch(minibatch_db, self._num_classes)
 

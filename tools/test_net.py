@@ -25,6 +25,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Test a Fast R-CNN network')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU id to use',
                         default=0, type=int)
+    parser.add_argument('--overalp', dest='overlap', help='overlap used to compute the detection score',
+                        default=0.5, type=int)
     parser.add_argument('--def', dest='prototxt',
                         help='prototxt file defining the network',
                         default=None, type=str)
@@ -36,9 +38,9 @@ def parse_args():
     parser.add_argument('--wait', dest='wait',
                         help='wait until net file exists',
                         default=True, type=bool)
-    parser.add_argument('--recompute', dest='recompute',
-                        help='recompute the score even if its already saved in detections.pkl file',
-                        default=True, type=bool)
+    parser.add_argument('--reusedet', dest='reusedet',
+                        help='reuse the detection scores already saved in detections.pkl file',
+                        default=False, action='store_true')
     parser.add_argument('--feat', dest='feat_file',
                         help='Name of the file to save the features',
                         default=None, type=str)
