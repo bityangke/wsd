@@ -237,7 +237,7 @@ class HingeLoss2(caffe.Layer):
         act = 1-bottom[0].data*y
         self.diff=np.zeros(y.shape)
         self.diff[act>0] = - y[act>0] 
-        top[0].data[...] = np.sum(np.maximum(0,act))#/bottom[0].count# / bottom[0].num / 2.
+        top[0].data[...] = np.sum(np.maximum(0,act))/bottom[0].num#/bottom[0].count# / bottom[0].num / 2.
         if 0:
             print "out",bottom[0].data.squeeze() 
             print "gt",bottom[1].data.squeeze()
@@ -255,7 +255,72 @@ class HingeLoss2(caffe.Layer):
                 sign = 1
             else:
                 sign = -1
-            bottom[i].diff[...] = sign * self.diff #/ bottom[i].count
+            bottom[i].diff[...] = sign * self.diff/bottom[0].num #/ bottom[i].count
+
+class MyDistance(caffe.Layer):
+    #   bottom[0]: "fc7"       features
+    #   bottom[1]: "soft_max"  weights
+    #   bottom[2]: "rois"      image
+    #   bottom[3]: "labels_im" image classes
+    #it receives also the rois to know which regions to sum
+
+    def setup(self, bottom, top):
+        # check input pair
+        if len(bottom) != 4:
+            raise Exception("Only two input needed.")
+        self.num_im = cfg.TRAIN.IMS_PER_BATCH#bottom[1].data[:,0].max()
+        self.num_cl = bottom[3].data.shape[1]
+        layer_params = yaml.load(self.param_str_)
+        self.myloss_weight = layer_params['myloss_weight']
+        #top[0].reshape(1, bottom[0].channels,bottom[0].height, bottom[0].width)
+        
+    def reshape(self, bottom, top):
+        bottom[0].reshape(bottom[0].num, bottom[0].channels,bottom[0].height, bottom[0].width)
+        top[0].reshape(1)#cfg.TRAIN.IMS_PER_BATCH, bottom[0].channels,bottom[0].height, bottom[0].width)
+        #top[0].diff.reshape(cfg.TRAIN.IMS_PER_BATCH, bottom[0].channels,bottom[0].height, bottom[0].width)
+        #print top[0].data.shape
+        #print top[0].diff.shape
+        #raw_input()
+        #bottom[1][0] tells from which image every layer comes from
+
+    def forward(self, bottom, top):
+        #for cl in xrange(self.num_im):
+        self.acl=((bottom[3].data[0]+bottom[3].data[1])==2).squeeze()
+        if cfg.TRAIN.SAME_CLASS_PAIR:
+            assert(np.any(self.acl))
+        cls=np.arange(self.num_cl)[self.acl]
+        self.diff=np.zeros((self.num_cl,bottom[0].data.shape[1],1))
+        self.dist=np.zeros(self.num_cl)
+        for cl in cls: 
+            aux=(bottom[0].data.T*bottom[1].data[:,cl]).T
+            dsr0=(aux[bottom[2].data[:,0]==0]).sum(0)
+            dsr1=(aux[bottom[2].data[:,0]==1]).sum(0)
+            self.diff[cl] = (dsr0-dsr1).reshape((-1,1))
+            self.dist[cl]=0.5*np.sum((self.diff)**2)
+        top[0].data[0]=self.myloss_weight * self.dist.sum()
+        print "Distance Loss",top[0].data[0]
+        
+
+    def backward(self, top, propagate_down, bottom):
+        #acl=(bottom[3].data[0]-bottom[3].data[1])==0
+        cls=(np.arange(self.num_cl)[self.acl])
+        for cl in cls:
+            bottom[0].diff[:,:,0,0] += self.myloss_weight * np.dot((bottom[1].data[:,cl]).reshape((-1,1)),self.diff[cl].T)
+            bottom[1].diff[:,cl] +=  self.myloss_weight * (np.dot(bottom[0].data[:,:,0,0],self.diff[cl])[:,0])
+        sel = bottom[2].data[:,0]==1
+        bottom[0].diff[sel] = -bottom[0].diff[sel]
+        bottom[1].diff[sel] = -bottom[1].diff[sel]
+            
+        #sel = bottom[2].data[:,0]==cl
+        #bottom[0].diff[sel] = np.dot(bottom[1].data,top[0].diff[cl])
+        
+        if cfg.TRAIN.CHECK_GRAD:
+            x = bottom[0].data[sel]
+            err=check_grad(f,g,x,1e-4)
+            print "Testing Gradient Sum",err
+            if err>1e-3:
+                dsfsd
+                print "Error in the gradient!"
 
 
 class HingeLossNorm(caffe.Layer):

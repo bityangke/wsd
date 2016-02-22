@@ -36,16 +36,33 @@ class RoIDataLayer(caffe.Layer):
 
     def _get_next_minibatch_inds_pair(self):
         """Return the roidb indices for the next minibatch."""
+        assert(cfg.TRAIN.IMS_PER_BATCH==2)
         if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
             self._shuffle_roidb_inds()
 
-        db_inds = self._perm[self._cur:self._cur + 1]
-        labels = self._roidb[i]['max_classes']
+        db_inds = (self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]).copy()
+        #labels = self._roidb[i]['max_classes']
         #select one of the classes in the image
-        cls=np.random.choice([x for x in np.arange(num_classes) if np.any(labels==x)])
-        #find another image of the same class
-        
+        allcls=self._cls[self._perm[self._cur]]
+        cls=np.random.choice(allcls)
+        #find the next image of the same class 
+        #it is ok because the samples are shuffled
+        idx = self._cur
+        #print "Perm",self._perm[:10]
+        #print "S1",self._cur,allcls,cls
+        #print "S1+1",self._cur,self._cls[self._perm[self._cur+1]]
+        while True:
+            idx+=1
+            if idx > len(self._roidb):
+                idx=0
+            if cls in self._cls[self._perm[idx]]:
+                db_inds[-1]=self._perm[idx]
+                #print "S2",idx,self._cls[self._perm[idx]]
+                #print self._roidb[self._perm[idx]]['gt_classes']
+                break
+        #print "Current",self._cur
         self._cur += 1#cfg.TRAIN.IMS_PER_BATCH
+        #raw_input()
         return db_inds
 
     def _get_next_minibatch(self):
@@ -57,8 +74,9 @@ class RoIDataLayer(caffe.Layer):
         if cfg.TRAIN.USE_PREFETCH:
             return self._blob_queue.get()
         else:
-            if cfg.TRAIN.PAIRWISE_SIM:
+            if cfg.TRAIN.SAME_CLASS_PAIR:
               db_inds = self._get_next_minibatch_inds_pair()
+              #db_inds = self._get_next_minibatch_inds_pair()
             else:
               db_inds = self._get_next_minibatch_inds()
             minibatch_db = [self._roidb[i] for i in db_inds]
@@ -67,6 +85,15 @@ class RoIDataLayer(caffe.Layer):
     def set_roidb(self, roidb):
         """Set the roidb to be used by this layer during training."""
         self._roidb = roidb
+        self._cls=[]
+        num_classes = cfg.TRAIN
+        for im in xrange(len(roidb)):
+            labels = self._roidb[im]['max_classes']
+            if cfg.TRAIN.USE_BACKGROUND:
+                self._cls.append([x for x in np.arange(self._num_classes) if np.any(labels==x)])
+            else:
+                self._cls.append([x for x in np.arange(1,self._num_classes) if np.any(labels==x)])
+            #print self._cls[-1],
         self._shuffle_roidb_inds()
         if cfg.TRAIN.USE_PREFETCH:
             self._blob_queue = Queue(10)

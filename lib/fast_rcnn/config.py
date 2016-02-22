@@ -81,6 +81,11 @@ __C.TRAIN.USE_PREFETCH = False
 # Use single class or multiclass classification 
 # False --> GT = class
 # True --> Distribution over classes
+__C.TRAIN.USE_GT_BOXES = True
+
+# Use single class or multiclass classification 
+# False --> GT = class
+# True --> Distribution over classes
 __C.TRAIN.MULTICLASS = True
 
 # Use single class or multiclass classification 
@@ -101,8 +106,11 @@ __C.TRAIN.WEAKLY_SUP = False
 # it can slow down the training!!!
 __C.TRAIN.CHECK_GRAD = False
 
-# enforce an additional loss
-__C.TRAIN.PAIRWISE_SIM = False
+# sample pairs from the same class
+# useful to enforce pairwise similarity
+# notice that now 1 iteration passes pairs of images
+# thus same iterations double computation!
+__C.TRAIN.SAME_CLASS_PAIR = False
 
 #
 # Testing options

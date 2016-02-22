@@ -109,8 +109,6 @@ class MySum2Layer(caffe.Layer):
                     dsfsd
                     print "Error in the gradient!"
 
-
-
 def betaweights2(x,beta,axis=-1):
     e_x = beta**(x - np.max(x,axis=axis,keepdims=True))
     #print e_x
@@ -207,7 +205,9 @@ class BetaSoftMax2Layer(caffe.Layer):
     def backward(self, top, propagate_down, bottom):
         for cl in xrange(self.num_im):
             sel = bottom[1].data[:,0]==cl
-            bottom[0].diff[sel] = top[0].diff[sel]*g_soft(bottom[0].data[sel])
+            #for some reason g_soft is wrong...
+            #bottom[0].diff[sel] = top[0].diff[sel]*g_soft(bottom[0].data[sel])
+            bottom[0].diff[sel] = np.log(self.beta)*top[0].data[sel] * (top[0].diff[sel]-(top[0].diff[sel]*top[0].data[sel]).sum(0,keepdims=True))
         #print 'Error', np.sum((bottom[0].diff-pr2)**2)
             if cfg.TRAIN.CHECK_GRAD:
                 x = bottom[0].data[sel]

@@ -103,7 +103,8 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
         present = [x for x in np.arange(num_classes) if np.any(labels==x)]
         labels_id[0,present] = 1.0#labels[overlaps.argmax()]
     #labels_id[0,0] = 0.0 #remove background
-    labels_id /= np.sum(labels_id)
+    ######MP CHANGE 22/02 removng normalzation
+    #labels_id /= np.sum(labels_id)
     assert(not(np.all(labels_id==0)))
     if not cfg.TRAIN.MULTICLASS:
         labels_id = np.random.choice(present)
@@ -111,7 +112,11 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     #print "LABELS",labels_id#.squeeze()
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
-    fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
+    if cfg.TRAIN.USE_GT_BOXES:
+        fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
+    else:
+        gt_classes = roidb['gt_classes']
+        fg_inds = np.where(np.logical_and(overlaps >= cfg.TRAIN.FG_THRESH,gt_classes==0))[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground RoIs
     fg_rois_per_this_image = np.minimum(fg_rois_per_image, fg_inds.size)
@@ -128,7 +133,7 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
     bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
                                         bg_inds.size)
-    # Sample foreground regions without replacement
+    # Sample background regions without replacement
     if bg_inds.size > 0:
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image,
                              replace=False)
