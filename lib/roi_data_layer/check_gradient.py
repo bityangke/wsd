@@ -100,7 +100,7 @@ class MySum2Layer(caffe.Layer):
         for cl in xrange(self.num_im):
             sel = bottom[1].data[:,0]==cl
             bottom[0].diff[sel] = top[0].diff[cl]*g(bottom[0].data[sel])
-            
+
             if cfg.TRAIN.CHECK_GRAD:
                 x = bottom[0].data[sel]
                 err=check_grad(f,g,x,1e-4)
@@ -108,6 +108,7 @@ class MySum2Layer(caffe.Layer):
                 if err>1e-3:
                     dsfsd
                     print "Error in the gradient!"
+                    
 
 def betaweights2(x,beta,axis=-1):
     e_x = beta**(x - np.max(x,axis=axis,keepdims=True))

@@ -53,7 +53,7 @@ class RoIDataLayer(caffe.Layer):
         #print "S1+1",self._cur,self._cls[self._perm[self._cur+1]]
         while True:
             idx+=1
-            if idx > len(self._roidb):
+            if idx >= len(self._roidb):
                 idx=0
             if cls in self._cls[self._perm[idx]]:
                 db_inds[-1]=self._perm[idx]
