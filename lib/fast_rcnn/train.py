@@ -39,6 +39,18 @@ class SolverWrapper(object):
             print ('Loading pretrained model '
                    'weights from {:s}').format(pretrained_model)
             self.solver.net.copy_from(pretrained_model)
+            
+        #transform the last layers into convonutional    
+        if cfg.TRAIN.SEGMENTATION:
+            #pretrained = caffe.Net('data/imagenet_models/deploy.prototxt',pretrained_model,caffe.TEST)
+            self.solver.net.params['fc6-conv'][0].data[...].flat=self.solver.net.params['fc6'][0].data[...].flat.copy()
+            self.solver.net.params['fc7-conv'][0].data[...].flat=self.solver.net.params['fc7'][0].data[...].flat.copy()
+            #del self.solver.net.outputs['fc7']
+            #self.solver.net.params['cls_score-conv'][0].data[...].flat=self.solver.net.params['cls_score'][0].data[...].flat
+        #hack to remove!!!!!!!!
+        #print "Setting fc7 t 0!"
+        #self.solver.net.params['fc7'][0].data[...]=0
+        #print self.solver.net.params['cls_score'][0].data
 
         self.solver_param = caffe_pb2.SolverParameter()
         with open(solver_prototxt, 'rt') as f:
@@ -93,11 +105,12 @@ class SolverWrapper(object):
             timer.toc()
             if self.solver.iter % (10 * self.solver_param.display) == 0:
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
+                #print self.solver.net.params['cls_score'][0].data
 
             if self.solver.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = self.solver.iter
                 self.snapshot()
-
+            
         if last_snapshot_iter != self.solver.iter:
             self.snapshot()
 

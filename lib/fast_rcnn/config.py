@@ -112,6 +112,18 @@ __C.TRAIN.CHECK_GRAD = False
 # thus same iterations double computation!
 __C.TRAIN.SAME_CLASS_PAIR = False
 
+# Unsepervised segmentation
+# done changing fc layers into convolutional
+__C.TRAIN.SEGMENTATION = False
+
+# Weight for the pairwise loss
+# done changing fc layers into convolutional
+__C.TRAIN.PAIRWISE_WEIGHT = 0.0
+
+# Bridge loss uses Normalized scores?
+__C.TRAIN.BRIDGE_NORM = False
+
+
 #
 # Testing options
 #
@@ -137,7 +149,7 @@ __C.TEST.SVM = False
 __C.TEST.BBOX_REG = True
 
 # Use horizontally-flipped images during test?
-__C.TEST.USE_FLIPPED = True
+__C.TEST.USE_FLIPPED = False
 
 #
 # MISC

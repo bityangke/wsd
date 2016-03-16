@@ -18,6 +18,7 @@ import cPickle
 import heapq
 from utils.blob import im_list_to_blob
 import os
+import PIL
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -151,7 +152,7 @@ def _clip_boxes(boxes, im_shape):
     boxes[:, 3::4] = np.minimum(boxes[:, 3::4], im_shape[0] - 1)
     return boxes
 
-def im_detect(net, im, boxes, feat_file=None):
+def im_detect(net, im, boxes, feat_file=None, eval_segm=False):
     """Detect object classes in an image given object proposals.
 
     Arguments:
@@ -190,9 +191,12 @@ def im_detect(net, im, boxes, feat_file=None):
     blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False),
                             rois=blobs['rois'].astype(np.float32, copy=False),
                             blobs=feat_layer)
-                            
+                                
     if feat_file!=None:
         feat = blobs_out[feat_layer[0]].copy()
+
+    if eval_segm:
+        pass
     
     if cfg.TEST.SVM:
         # use the raw scores before softmax under the assumption they
@@ -200,7 +204,7 @@ def im_detect(net, im, boxes, feat_file=None):
         scores = net.blobs['cls_score'].data
     else:
         # use softmax estimated probabilities
-        scores = blobs_out['cls_prob']
+        scores = net.blobs['cls_prob'].data#blobs_out['cls_prob']
 
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
@@ -269,25 +273,113 @@ def evalCorLoc(imdb,nms_dets,overlap=0.5):
     return corloc
 
 
+#def vis_detections(im, class_name, dets, thresh=0.3):
+#    """Visual debugging of detections."""
+#    import matplotlib.pyplot as plt
+#    im = im[:, :, (2, 1, 0)]
+#    for i in xrange(np.minimum(10, dets.shape[0])):
+#        bbox = dets[i, :4]
+#        score = dets[i, -1]
+#        if score > thresh:
+#            plt.cla()
+#            plt.imshow(im)
+#            plt.gca().add_patch(
+#                plt.Rectangle((bbox[0], bbox[1]),
+#                              bbox[2] - bbox[0],
+#                              bbox[3] - bbox[1], fill=False,
+#                              edgecolor='g', linewidth=3)
+#                )
+#            plt.title('{}  {:.3f}'.format(class_name, score))
+#            #plt.show()
+#    plt.show()
+
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt
     im = im[:, :, (2, 1, 0)]
-    for i in xrange(np.minimum(10, dets.shape[0])):
+    for i in xrange(np.minimum(3, dets.shape[0])):
         bbox = dets[i, :4]
         score = dets[i, -1]
         if score > thresh:
-            plt.cla()
-            plt.imshow(im)
             plt.gca().add_patch(
-                plt.Rectangle((bbox[0], bbox[1]),
-                              bbox[2] - bbox[0],
-                              bbox[3] - bbox[1], fill=False,
-                              edgecolor='g', linewidth=3)
-                )
-            plt.title('{}  {:.3f}'.format(class_name, score))
+            plt.Rectangle((bbox[0], bbox[1]),
+                          bbox[2] - bbox[0],
+                          bbox[3] - bbox[1], fill=False,
+                          edgecolor='g', linewidth=3)
+            )
+            #plt.title('{}  {:.3f}'.format(class_name, score))
+            plt.text(bbox[0],bbox[1],'{}  {:.3f}'.format(class_name, score),backgroundcolor=(1,1,1,1))
             #plt.show()
-    plt.show()
+    #plt.show()
+
+def merge_detections(all_boxes,imdb):
+    """Apply non-maximum suppression to all predicted boxes output by the
+    test_net method.
+    """
+    num_classes = len(all_boxes)
+    num_images = len(all_boxes[0])
+    new_boxes = [[[] for _ in xrange(num_images/2)]
+                 for _ in xrange(num_classes)]
+    for cls_ind in xrange(num_classes):
+        #cls_ind=7
+        print "Class",cls_ind
+        for im_ind in xrange(num_images/2):
+            dets_left = all_boxes[cls_ind][im_ind]
+            dets_right = all_boxes[cls_ind][im_ind+num_images/2]
+            if dets_right == []:
+                continue
+            width = PIL.Image.open(imdb.image_path_at(im_ind)).size[0]
+            if 0:
+                if len(dets_left)>0 and len(dets_right)>0:
+                    import pylab
+                    im = cv2.imread(imdb.image_path_at(im_ind))
+                    pylab.figure(0)
+                    pylab.clf()
+                    pylab.imshow(im)
+                    pylab.draw()
+                    pylab.show()
+                    pylab.figure(1)
+                    pylab.clf()
+                    pylab.plot([0,width],[0,400]) #ylim((25,250))
+                    for l in range(len(dets_left)):
+                        if dets_left[l,4]>0.1:
+                            x1=dets_left[l,0];x2=dets_left[l,2]
+                            y1=dets_left[l,1];y2=dets_left[l,3]
+                            pylab.plot([x1,x1,x2,x2,x1],[y1,y2,y2,y1,y1],lw=3)
+                    pylab.draw()
+                    pylab.show()
+                    pylab.figure(2)
+                    pylab.clf()
+                    pylab.plot([0,width],[0,400]) #ylim((25,250))
+                    for l in range(len(dets_right)):
+                        if dets_right[l,4]>0.1:
+                            x1=dets_right[l,0];x2=dets_right[l,2]
+                            y1=dets_right[l,1];y2=dets_right[l,3]
+                            pylab.plot([x1,x1,x2,x2,x1],[y1,y2,y2,y1,y1],lw=3)
+                    pylab.draw()
+                    pylab.show()
+                    #raw_input()            
+            oldx1 = dets_right[:, 0].copy()
+            oldx2 = dets_right[:, 2].copy()
+            dets_right[:,0] = width - oldx2 - 1
+            dets_right[:,2] = width - oldx1 - 1
+            assert (dets_right[:,2] >= dets_right[:,0]).all()        
+            new_boxes[cls_ind][im_ind] = np.concatenate((dets_left,dets_right),0)
+            if 0:
+                if len(dets_right)>0:
+                    import pylab
+                    pylab.figure(3)
+                    pylab.clf()
+                    pylab.plot([0,width],[0,400]) #ylim((25,250))
+                    for l in range(len(dets_right)):
+                        if dets_right[l,4]>0.1:
+                            x1=dets_right[l,0];x2=dets_right[l,2]
+                            y1=dets_right[l,1];y2=dets_right[l,3]
+                            pylab.plot([x1,x1,x2,x2,x1],[y1,y2,y2,y1,y1],lw=3)
+                    pylab.draw()
+                    pylab.show()
+                    raw_input()
+    return new_boxes
 
 def apply_nms(all_boxes, thresh):
     """Apply non-maximum suppression to all predicted boxes output by the
@@ -332,12 +424,16 @@ def test_net(net, imdb ,args):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    flip_str=''
+    if args.use_flip:
+        flip_str='flip'
+
     #print "--------",args.reusedet
     itr= args.caffemodel.split('_')[-1].split('.')[0]
     try:
         if not(args.reusedet):
             generate_error
-        det_file = os.path.join(output_dir, 'detections%s.pkl'%itr)
+        det_file = os.path.join(output_dir, 'detections%s%s.pkl'%(flip_str,itr))
         with open(det_file, 'rb') as f:
             all_boxes = cPickle.load(f)
 
@@ -349,10 +445,18 @@ def test_net(net, imdb ,args):
         lfeat = []
         for i in xrange(num_images):
             im = cv2.imread(imdb.image_path_at(i))
+            if roidb[i]["flipped"]:
+                im = im[:,::-1,:]
             _t['im_detect'].tic()
-            scores, boxes = im_detect(net, im, roidb[i]['boxes'],args.feat_file)
+            scores, boxes = im_detect(net, im, roidb[i]['boxes'],args.feat_file,args.eval_segm)
             _t['im_detect'].toc()
             #lfeat.append(feat)
+
+            if args.visdet:
+                import pylab
+                pylab.figure(1)
+                pylab.clf()
+                pylab.imshow(im)
 
             _t['misc'].tic()
             for j in xrange(1, imdb.num_classes):
@@ -378,11 +482,11 @@ def test_net(net, imdb ,args):
                         np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
                         .astype(np.float32, copy=False)
                         
-                if 0:
+                if args.visdet:
                     keep = nms(all_boxes[j][i], 0.3)
                     #import pylab
                     #pylab.figure(1)
-                    vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
+                    vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :],0.3)
                     #pylab.draw()
                     #pylab.show()
                     #raw_input()
@@ -391,6 +495,11 @@ def test_net(net, imdb ,args):
             print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
                   .format(i + 1, num_images, _t['im_detect'].average_time,
                           _t['misc'].average_time)
+            
+            if args.visdet:
+                pylab.draw()
+                pylab.show()
+                raw_input()
 
         for j in xrange(1, imdb.num_classes):
             for i in xrange(num_images):
@@ -401,10 +510,18 @@ def test_net(net, imdb ,args):
             print 'Saving the features in ',os.path.join(output_dir,args.feat_file)
             with open(os.path.join(output_dir,args.feat_file), 'wb') as f:
                 cPickle.dump(lfeat, f, cPickle.HIGHEST_PROTOCOL)
-
-        det_file = os.path.join(output_dir, 'detections%s.pkl'%itr)
+                
+        det_file = os.path.join(output_dir, 'detections%s%s.pkl'%(flip_str,itr))
         with open(det_file, 'wb') as f:
             cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+
+    if args.use_flip:
+        print "Merging Left Right Detections"
+        all_boxes2 = all_boxes
+        #all_boxes=merge_detections(all_boxes2,imdb)
+        all_boxes=merge_detections(all_boxes2,imdb)
+        from datasets.factory import get_imdb
+        imdb = get_imdb(args.imdb_name)
 
     print 'Applying NMS to all detections'
     nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)

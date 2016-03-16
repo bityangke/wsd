@@ -182,7 +182,10 @@ class RoIDataLayer(caffe.Layer):
 
     def reshape(self, bottom, top):
         """Reshaping happens during the call to forward."""
-        pass
+        #pass
+        #top[0].reshape(cfg.TRAIN.IMS_PER_BATCH*cfg.TRAIN.BATCH_SIZE,3,100,100)
+        #top[1].reshape(cfg.TRAIN.IMS_PER_BATCH*cfg.TRAIN.BATCH_SIZE,5)
+        #top[2].reshape(cfg.TRAIN.IMS_PER_BATCH*cfg.TRAIN.BATCH_SIZE,self._num_classes)
 
 class BlobFetcher(Process):
     """Experimental class for prefetching blobs in a separate process."""

@@ -102,6 +102,17 @@ class imdb(object):
         """
         raise NotImplementedError
 
+    def evaluate_segmentation(self, all_segm, output_dir=None):
+        """
+        all_boxes is a list of length number-of-classes.
+        Each list element is a list of length number-of-images.
+        Each of those list elements is either an empty list []
+        or a classification score
+
+        all_boxes[class][image] = [] or classification score
+        """
+        raise NotImplementedError
+
     def append_flipped_images(self):
         num_images = self.num_images
         widths = [PIL.Image.open(self.image_path_at(i)).size[0]
@@ -119,6 +130,41 @@ class imdb(object):
                      'flipped' : True}
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
+
+    def tag_truncated_boxes(self):
+        num_images = self.num_images
+        widths,heights = [PIL.Image.open(self.image_path_at(i)).size[0:2]
+                  for i in xrange(num_images)]
+        for i in xrange(num_images):
+            boxes = self.roidb[i]['boxes']
+            x1 = boxes[:,0]
+            y1 = boxes[:,1]
+            x2 = boxes[:,2]
+            y2 = boxes[:,3]
+            areas = (x2 - x1) * (y2 - y1)
+            trunc = np.logic_or(x1 < 5,y1 < 5, x2 > widths - 5, y2 > eights -5 ) 
+            trunc = np.logic_or(trunc,area> widths*heights*0.9)
+            self.roidb[i]['truncated'] = trunc
+
+
+    def append_only_flipped_images(self):
+        num_images = self.num_images
+        widths = [PIL.Image.open(self.image_path_at(i)).size[0]
+                  for i in xrange(num_images)]
+        #self.roidb = []
+        for i in xrange(num_images):
+            boxes = self.roidb[i]['boxes'].copy()
+            oldx1 = boxes[:, 0].copy()
+            oldx2 = boxes[:, 2].copy()
+            boxes[:, 0] = widths[i] - oldx2 - 1
+            boxes[:, 2] = widths[i] - oldx1 - 1
+            assert (boxes[:, 2] >= boxes[:, 0]).all()
+            entry = {'boxes' : boxes,
+                     'gt_overlaps' : self.roidb[i]['gt_overlaps'],
+                     'gt_classes' : self.roidb[i]['gt_classes'],
+                     'flipped' : True}
+            self.roidb[i]=(entry)
+        #self._image_index = self._image_index * 2
 
     def evaluate_recall(self, candidate_boxes, ar_thresh=0.5):
         # Record max overlap value for each gt box
