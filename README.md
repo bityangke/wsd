@@ -1,3 +1,5 @@
++Modified version of fast R-CNN that makes it run in a weakly supervised setting (no bbox annotations).+
+
   # *Fast* R-CNN: Fast Region-based Convolutional Networks for object detection
   
   Created by Ross Girshick at Microsoft Research, Redmond.
